@@ -4,7 +4,7 @@ Extensão do GNOME Shell que coloca na barra o uso de **CPU** e **RAM** e, com u
 
 - **Na barra:** `CPU% RAM%`. Fica amarelo a partir de 75% e vermelho a partir de 90%.
 - **No menu:** barras de CPU, memória e swap, e os 8 programas que mais consomem, ordenados por CPU ou por memória.
-- **Agrupado por programa:** todos os processos do `chrome` viram uma linha `chrome ×14`, e o ✕ encerra o grupo inteiro.
+- **Agrupado por programa:** todos os processos do `chrome` viram uma linha `chrome ×14`, e o ✕ encerra o grupo inteiro, depois de pedir confirmação na própria linha.
 - **Encerrar:** manda `SIGTERM`. Se o programa não sair em 3 s, manda `SIGKILL`.
 - **Seguro:** só oferece o ✕ para processos do seu usuário. Processos do sistema aparecem como "(sistema)", e peças da sessão (`gnome-shell`, `Xwayland`, `pipewire`, `dbus`…) nunca podem ser encerradas por aqui.
 - **Leve:** o texto da barra lê só `/proc/stat` e `/proc/meminfo` a cada 2 s. A lista de processos só é coletada com o menu aberto, por um script Python separado (`sampler.py`), para não travar a interface do Shell.

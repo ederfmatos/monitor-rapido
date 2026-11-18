@@ -53,9 +53,11 @@ class Meter {
 }
 
 class ProcRow {
-    constructor(onKill) {
+    constructor({onAsk, onConfirm, onCancel}) {
         this.item = new PopupMenu.PopupBaseMenuItem({reactive: false, can_focus: false});
+        const stack = new St.Widget({layout_manager: new Clutter.BinLayout(), x_expand: true});
         const box = new St.BoxLayout({style_class: 'mr-row', x_expand: true});
+        this._normalBox = box;
         const nameBox = new St.BoxLayout({style_class: 'mr-name', x_expand: true, y_align: Clutter.ActorAlign.CENTER});
         this._name = new St.Label({text: '', y_align: Clutter.ActorAlign.CENTER});
         this._name.clutter_text.ellipsize = 3; // END
@@ -71,20 +73,46 @@ class ProcRow {
         });
         this._kill.connect('clicked', () => {
             if (this.group)
-                onKill(this.group);
+                onAsk(this.group);
         });
         box.add_child(nameBox);
         box.add_child(this._cpu);
         box.add_child(this._mem);
         box.add_child(this._kill);
-        this.item.add_child(box);
+
+        // Estado de confirmação: substitui a linha até o usuário decidir.
+        this._confirmBox = new St.BoxLayout({style_class: 'mr-row mr-confirm', x_expand: true, visible: false});
+        this._question = new St.Label({x_expand: true, y_align: Clutter.ActorAlign.CENTER});
+        this._question.clutter_text.ellipsize = 3;
+        this._cancelBtn = new St.Button({label: 'Cancelar', style_class: 'mr-btn', can_focus: true});
+        this._confirmBtn = new St.Button({label: 'Encerrar', style_class: 'mr-btn mr-btn-danger', can_focus: true});
+        this._cancelBtn.connect('clicked', () => onCancel());
+        this._confirmBtn.connect('clicked', () => {
+            if (this.group)
+                onConfirm(this.group);
+        });
+        this._confirmBox.add_child(this._question);
+        this._confirmBox.add_child(this._cancelBtn);
+        this._confirmBox.add_child(this._confirmBtn);
+
+        stack.add_child(box);
+        stack.add_child(this._confirmBox);
+        this.item.add_child(stack);
     }
 
-    update(group, sortBy, hasCpu, pending) {
+    update(group, sortBy, hasCpu, pending, confirming = false) {
         this.group = group;
         this.item.visible = !!group;
         if (!group)
             return;
+        this._normalBox.visible = !confirming;
+        this._confirmBox.visible = confirming;
+        if (confirming) {
+            const n = group.pids.length;
+            this._question.text = n > 1
+                ? `Encerrar ${group.name} (${n} processos)?`
+                : `Encerrar ${group.name}?`;
+        }
         this._name.text = group.mine ? group.name : `${group.name} (sistema)`;
         this._count.text = group.pids.length > 1 ? `  ×${group.pids.length}` : '';
         this._cpu.text = hasCpu ? `${group.cpu.toFixed(1)}%` : '…';
@@ -110,6 +138,8 @@ class MonitorButton extends PanelMenu.Button {
         this._prevSample = null;
         this._lastSample = null;
         this._pending = new Map(); // grupo -> id do timeout de SIGKILL
+        this._confirmKey = null; // grupo aguardando confirmação
+        this._frozen = null; // lista congelada enquanto confirma
         this._cancellable = null;
         this._menuTimer = 0;
 
@@ -173,7 +203,11 @@ class MonitorButton extends PanelMenu.Button {
 
         this._rows = [];
         for (let i = 0; i < TOP_N; i++) {
-            const row = new ProcRow(g => this._kill(g));
+            const row = new ProcRow({
+                onAsk: g => this._ask(g),
+                onConfirm: g => this._confirm(g),
+                onCancel: () => this._cancelConfirm(),
+            });
             row.item.visible = false;
             this._rows.push(row);
             this.menu.addMenuItem(row.item);
@@ -192,6 +226,8 @@ class MonitorButton extends PanelMenu.Button {
 
     _setSort(by) {
         this._sortBy = by;
+        this._confirmKey = null;
+        this._frozen = null;
         for (const [b, key] of [[this._tabCpu, 'cpu'], [this._tabMem, 'mem']]) {
             if (key === by)
                 b.add_style_class_name('mr-tab-active');
@@ -245,6 +281,8 @@ class MonitorButton extends PanelMenu.Button {
     }
 
     _stopSampling() {
+        this._confirmKey = null;
+        this._frozen = null;
         if (this._menuTimer) {
             GLib.source_remove(this._menuTimer);
             this._menuTimer = 0;
@@ -279,14 +317,45 @@ class MonitorButton extends PanelMenu.Button {
             this._rows.forEach(r => r.update(null));
             return;
         }
-        const {groups, hasCpu} = P.groupProcesses(this._prevSample, this._lastSample);
-        const key = this._sortBy === 'cpu' && hasCpu ? 'cpu' : 'memKb';
-        groups.sort((a, b) => b[key] - a[key]);
+        // Com uma confirmação aberta, a lista fica parada: nada troca de lugar sob o cursor.
+        const {groups, hasCpu} = this._frozen ?? this._sortedGroups();
         this._emptyItem.visible = false;
         this._rows.forEach((r, i) => {
             const g = groups[i];
-            r.update(g, this._sortBy, hasCpu, g && this._pending.has(g.key));
+            r.update(g, this._sortBy, hasCpu, g && this._pending.has(g.key),
+                !!g && g.key === this._confirmKey);
         });
+    }
+
+    _sortedGroups() {
+        const res = P.groupProcesses(this._prevSample, this._lastSample);
+        const key = this._sortBy === 'cpu' && res.hasCpu ? 'cpu' : 'memKb';
+        res.groups.sort((a, b) => b[key] - a[key]);
+        return res;
+    }
+
+    _ask(group) {
+        if (!group.killable || this._pending.has(group.key))
+            return;
+        this._frozen ??= this._sortedGroups();
+        this._confirmKey = group.key;
+        this._renderList();
+    }
+
+    _cancelConfirm() {
+        this._confirmKey = null;
+        this._frozen = null;
+        this._renderList();
+    }
+
+    _confirm(group) {
+        // Usa os pids da amostra mais recente: pega processos filhos criados enquanto confirmava.
+        const fresh = this._lastSample
+            ? P.groupProcesses(null, this._lastSample).groups.find(g => g.key === group.key)
+            : null;
+        this._confirmKey = null;
+        this._frozen = null;
+        this._kill(fresh ?? group);
     }
 
     _kill(group) {

@@ -29,3 +29,9 @@
 .mr-kill-pending { background-color: rgba(255,80,80,0.6); }
 .mr-colhead { padding: 0 6px 0 12px; spacing: 10px; font-size: 0.8em; opacity: 0.6; }
 .mr-empty { padding: 6px 12px; opacity: 0.6; }
+
+.mr-confirm { spacing: 6px; }
+.mr-btn { padding: 3px 10px; border-radius: 6px; font-size: 0.9em; background-color: rgba(128,128,128,0.18); }
+.mr-btn:hover, .mr-btn:focus { background-color: rgba(128,128,128,0.32); }
+.mr-btn-danger { background-color: #c01c28; color: #ffffff; }
+.mr-btn-danger:hover, .mr-btn-danger:focus { background-color: #e01b24; }
