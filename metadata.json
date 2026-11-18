@@ -1,0 +1,8 @@
+{
+  "uuid": "monitor-rapido@ederfmatos",
+  "name": "Monitor Rápido",
+  "description": "CPU, RAM e swap na barra, com os processos que mais consomem e botão para encerrá-los.",
+  "shell-version": ["45", "46", "47", "48"],
+  "url": "https://github.com/ederfmatos/monitor-rapido",
+  "version": 1
+}

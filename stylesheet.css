@@ -1,0 +1,31 @@
+.mr-panel-label { font-feature-settings: "tnum"; font-size: 0.95em; }
+.mr-warn { color: #f5c211; }
+.mr-crit { color: #ff6b6b; }
+
+.mr-header { padding: 6px 12px 2px 12px; spacing: 8px; }
+.mr-meter { spacing: 4px; }
+.mr-meter-top { spacing: 8px; }
+.mr-meter-title { font-weight: bold; font-size: 0.9em; }
+.mr-meter-value { font-size: 0.9em; opacity: 0.75; font-feature-settings: "tnum"; }
+.mr-bar-bg { height: 6px; border-radius: 3px; background-color: rgba(128,128,128,0.28); }
+.mr-bar-fill { height: 6px; border-radius: 3px; background-color: #62a0ea; }
+.mr-bar-fill.mr-warn-bg { background-color: #f5c211; }
+.mr-bar-fill.mr-crit-bg { background-color: #ff6b6b; }
+
+.mr-tabs { padding: 6px 12px 2px 12px; spacing: 6px; }
+.mr-tab { padding: 3px 12px; border-radius: 99px; font-size: 0.9em; background-color: rgba(128,128,128,0.15); }
+.mr-tab:hover { background-color: rgba(128,128,128,0.3); }
+.mr-tab-active { background-color: #3584e4; color: #ffffff; }
+.mr-tab-active:hover { background-color: #4a90e8; }
+
+.mr-row { padding: 3px 6px 3px 12px; spacing: 10px; }
+.mr-name { min-width: 170px; }
+.mr-count { opacity: 0.6; font-size: 0.85em; }
+.mr-num { min-width: 64px; text-align: right; font-feature-settings: "tnum"; opacity: 0.8; }
+.mr-num-main { font-weight: bold; opacity: 1; }
+.mr-kill { padding: 4px; border-radius: 99px; }
+.mr-kill:hover { background-color: rgba(255,80,80,0.35); }
+.mr-kill:insensitive { opacity: 0.25; }
+.mr-kill-pending { background-color: rgba(255,80,80,0.6); }
+.mr-colhead { padding: 0 6px 0 12px; spacing: 10px; font-size: 0.8em; opacity: 0.6; }
+.mr-empty { padding: 6px 12px; opacity: 0.6; }
